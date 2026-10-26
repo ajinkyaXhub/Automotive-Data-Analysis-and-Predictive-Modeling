@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚗 Carlytics — Machine Learning & Automotive Data Analytics
 
 An end-to-end Machine Learning mini-project and enterprise automotive analytics SaaS application designed for college academic evaluation and industrial demonstration. This application cleans, explores, trains, and evaluates regression algorithms to predict estimated resale prices of pre-owned vehicles in Indian Rupees based on historical CarDekho secondary market transactions.
@@ -219,3 +220,6 @@ The **Carlytics** web application delivers a full-stack automotive analytics Saa
 ## 📜 License & Acknowledgments
 - Dataset source: CarDekho via Kaggle.
 - Built for academic and demonstration purposes.
+=======
+# Automotive-Data-Analysis-and-Predictive-Modeling
+>>>>>>> f79b3d12aaeb48545da8b283ce722feed309bd40

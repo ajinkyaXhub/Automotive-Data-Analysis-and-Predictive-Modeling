@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Price Estimator | Carlytics{% endblock %}
+{% block headline %}Secondary Market Price Estimator{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Generate Secondary Market Vehicle Valuation</div>
+        <div class="card-subtitle">Select verified vehicle parameters to predict the estimated resale value using the trained Random Forest model.</div>
+    </div>
+
+    <!-- Quick Benchmark Presets -->
+    <div class="preset-bar">
+        <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Benchmark Presets:</span>
+        <button type="button" class="btn-preset" onclick="loadPreset('Maruti', 2017, 42000, 'Petrol', 'Manual', 'Individual', 'First Owner')">Maruti Swift '17</button>
+        <button type="button" class="btn-preset" onclick="loadPreset('Hyundai', 2019, 36000, 'Diesel', 'Manual', 'Individual', 'First Owner')">Hyundai Creta '19</button>
+        <button type="button" class="btn-preset" onclick="loadPreset('Toyota', 2018, 62000, 'Diesel', 'Automatic', 'Dealer', 'First Owner')">Toyota Fortuner '18</button>
+        <button type="button" class="btn-preset" onclick="loadPreset('Honda', 2015, 78000, 'Petrol', 'Manual', 'Individual', 'Second Owner')">Honda City '15</button>
+        <button type="button" class="btn-preset btn-reset" onclick="resetForm()">↺ Reset Inputs</button>
+    </div>
+
+    <!-- Error Alert Box -->
+    <div id="errorAlert" class="alert alert-danger" style="display: none;">
+        <span id="errorMessage"></span>
+    </div>
+
+    <!-- Vehicle Details Form -->
+    <form id="estimatorForm" onsubmit="handleEstimateSubmit(event)">
+        <div class="grid-2">
+            <!-- Column 1: Identity & Usage -->
+            <div>
+                <div class="form-section-title">1. Vehicle Identity & Age</div>
+                <div class="form-group">
+                    <label class="form-label" for="brandSelect">Manufacturer / Brand</label>
+                    <select id="brandSelect" class="form-control" required>
+                        {% for b in brands %}
+                        <option value="{{ b }}" {% if b == 'Maruti' %}selected{% endif %}>{{ b }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="yearInput">Year of Manufacture / Registration</label>
+                    <input type="number" id="yearInput" class="form-control" min="1992" max="2026" value="2017" step="1" required>
+                </div>
+
+                <div class="form-section-title" style="margin-top: 24px;">2. Odometer & Usage</div>
+                <div class="form-group">
+                    <label class="form-label" for="kmInput">Total Kilometers Driven</label>
+                    <input type="number" id="kmInput" class="form-control" min="0" max="1000000" value="45000" step="1000" required>
+                </div>
+            </div>
+
+            <!-- Column 2: Powertrain & Ownership -->
+            <div>
+                <div class="form-section-title">3. Powertrain & Transmission</div>
+                <div class="form-group">
+                    <label class="form-label" for="fuelSelect">Fuel Mechanism</label>
+                    <select id="fuelSelect" class="form-control" required>
+                        {% for f in fuels %}
+                        <option value="{{ f }}" {% if f == 'Petrol' %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="transSelect">Transmission Type</label>
+                    <select id="transSelect" class="form-control" required>
+                        {% for t in transmissions %}
+                        <option value="{{ t }}" {% if t == 'Manual' %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-section-title" style="margin-top: 24px;">4. Ownership & Channel</div>
+                <div class="form-group">
+                    <label class="form-label" for="ownerSelect">Previous Ownership Tier</label>
+                    <select id="ownerSelect" class="form-control" required>
+                        {% for o in owners %}
+                        <option value="{{ o }}" {% if o == 'First Owner' %}selected{% endif %}>{{ o }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="sellerSelect">Seller Channel</label>
+                    <select id="sellerSelect" class="form-control" required>
+                        {% for s in sellers %}
+                        <option value="{{ s }}" {% if s == 'Individual' %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-primary" style="margin-top: 10px;">
+            <span id="btnText">Generate Resale Valuation</span>
+        </button>
+    </form>
+</div>
+
+<!-- Valuation Result Container (Hidden until submission) -->
+<div id="valuationResultBox" style="display: none; margin-top: 24px;">
+    <div class="valuation-hero">
+        <div class="hero-tag">Estimated Secondary Resale Valuation</div>
+        <div class="hero-price" id="resalePriceFull">₹ 0</div>
+        <div class="hero-denom" id="resalePriceLakh">Approx. ₹ 0 Lakhs</div>
+        <div class="hero-specs-summary" id="heroSummaryPill">
+            <!-- Rendered by JS -->
+        </div>
+        <div style="margin-top: 16px;">
+            <button type="button" class="btn-primary" onclick="transferToSimulator()" style="background: linear-gradient(135deg, #4f46e5 0%, #0284c7 100%); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); display: inline-flex; align-items: center; gap: 8px;">
+                <!-- Sliders Icon -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                </svg>
+                <span>Simulate What-If Scenarios for this Vehicle ⚡</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary of submitted specifications -->
+    <div class="card" style="margin-top: 20px;">
+        <div class="card-title">Submitted Vehicle Specification Summary</div>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">Make & Model Year</div>
+                <div class="summary-val" id="sumBrandYear">-</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Odometer Reading</div>
+                <div class="summary-val" id="sumOdometer">-</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Powertrain & Gearbox</div>
+                <div class="summary-val" id="sumFuelTrans">-</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Ownership & Channel</div>
+                <div class="summary-val" id="sumOwnerSeller">-</div>
+            </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-top: 18px;">
+            <strong>Important Valuation Notice:</strong>
+            This valuation is an algorithmic estimate generated by the trained Random Forest model based on 2,861 historical secondary transactions.
+            Realized market value may vary depending on vehicle factors outside this dataset, including body/paint condition, insurance validity, complete service history, tyre tread life, and regional demand.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function loadPreset(brand, year, km, fuel, trans, seller, owner) {
+        document.getElementById('brandSelect').value = brand;
+        document.getElementById('yearInput').value = year;
+        document.getElementById('kmInput').value = km;
+        document.getElementById('fuelSelect').value = fuel;
+        document.getElementById('transSelect').value = trans;
+        document.getElementById('sellerSelect').value = seller;
+        document.getElementById('ownerSelect').value = owner;
+        document.getElementById('errorAlert').style.display = 'none';
+    }
+
+    function resetForm() {
+        loadPreset('Maruti', 2017, 45000, 'Petrol', 'Manual', 'Individual', 'First Owner');
+        document.getElementById('valuationResultBox').style.display = 'none';
+        document.getElementById('errorAlert').style.display = 'none';
+    }
+
+    async function handleEstimateSubmit(event) {
+        event.preventDefault();
+        
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const resultBox = document.getElementById('valuationResultBox');
+        
+        errorAlert.style.display = 'none';
+        
+        // Form extraction
+        const brand = document.getElementById('brandSelect').value;
+        const year = parseInt(document.getElementById('yearInput').value, 10);
+        const km_driven = parseInt(document.getElementById('kmInput').value, 10);
+        const fuel = document.getElementById('fuelSelect').value;
+        const transmission = document.getElementById('transSelect').value;
+        const seller_type = document.getElementById('sellerSelect').value;
+        const owner = document.getElementById('ownerSelect').value;
+        
+        // Client-side validation
+        if (isNaN(year) || year < 1990 || year > 2026) {
+            errorMessage.textContent = 'Please provide a valid manufacturing year between 1990 and 2026.';
+            errorAlert.style.display = 'flex';
+            return;
+        }
+        
+        if (isNaN(km_driven) || km_driven < 0) {
+            errorMessage.textContent = 'Kilometers driven cannot be negative.';
+            errorAlert.style.display = 'flex';
+            return;
+        }
+        
+        // Loading state
+        submitBtn.disabled = true;
+        btnText.textContent = 'Calculating Resale Valuation...';
+        
+        try {
+            const response = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    brand: brand,
+                    year: year,
+                    km_driven: km_driven,
+                    fuel: fuel,
+                    transmission: transmission,
+                    seller_type: seller_type,
+                    owner: owner
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                errorMessage.textContent = result.error || 'Failed to generate valuation.';
+                errorAlert.style.display = 'flex';
+                return;
+            }
+            
+            // Render results
+            document.getElementById('resalePriceFull').textContent = result.price_formatted;
+            document.getElementById('resalePriceLakh').textContent = `Approx. ${result.price_lakhs}`;
+            document.getElementById('heroSummaryPill').innerHTML = `
+                <span>${brand} (${year})</span> • 
+                <span>${result.summary.km_driven}</span> • 
+                <span>${fuel}</span> • 
+                <span>${transmission}</span>
+            `;
+            
+            document.getElementById('sumBrandYear').textContent = `${brand} (${year})`;
+            document.getElementById('sumOdometer').textContent = result.summary.km_driven;
+            document.getElementById('sumFuelTrans').textContent = `${fuel} • ${transmission}`;
+            document.getElementById('sumOwnerSeller').textContent = `${owner} • ${seller_type}`;
+            
+            resultBox.style.display = 'block';
+            resultBox.scrollIntoView({ behavior: 'smooth' });
+            
+            // Save to browser session storage valuation history
+            const history = JSON.parse(sessionStorage.getItem('valuation_history') || '[]');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            history.unshift({
+                time: timeStr,
+                brand: brand,
+                year: year,
+                km: result.summary.km_driven,
+                fuel: fuel,
+                trans: transmission,
+                price_full: result.price_formatted,
+                price_lakhs: result.price_lakhs
+            });
+            // Keep last 15
+            sessionStorage.setItem('valuation_history', JSON.stringify(history.slice(0, 15)));
+            
+        } catch (err) {
+            errorMessage.textContent = 'Server communication error: ' + err.message;
+            errorAlert.style.display = 'flex';
+        } finally {
+            submitBtn.disabled = false;
+            btnText.textContent = 'Generate Resale Valuation';
+        }
+    }
+
+    function transferToSimulator() {
+        const brand = document.getElementById('brandSelect').value;
+        const year = document.getElementById('yearInput').value;
+        const km_driven = document.getElementById('kmInput').value;
+        const fuel = document.getElementById('fuelSelect').value;
+        const transmission = document.getElementById('transSelect').value;
+        const seller_type = document.getElementById('sellerSelect').value;
+        const owner = document.getElementById('ownerSelect').value;
+
+        const carData = {
+            brand: brand,
+            year: parseInt(year, 10),
+            km_driven: parseInt(km_driven, 10),
+            fuel: fuel,
+            transmission: transmission,
+            seller_type: seller_type,
+            owner: owner
+        };
+
+        // Store in sessionStorage and navigate
+        sessionStorage.setItem('estimator_car_transfer', JSON.stringify(carData));
+        window.location.href = `/simulator?brand=${encodeURIComponent(brand)}&year=${year}&km_driven=${km_driven}&fuel=${encodeURIComponent(fuel)}&transmission=${encodeURIComponent(transmission)}&seller_type=${encodeURIComponent(seller_type)}&owner=${encodeURIComponent(owner)}`;
+    }
+</script>
+{% endblock %}

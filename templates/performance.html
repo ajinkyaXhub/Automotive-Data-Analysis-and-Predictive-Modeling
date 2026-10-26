@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Model Performance & Diagnostics | Carlytics{% endblock %}
+{% block headline %}Model Performance & Evaluation Metrics{% endblock %}
+
+{% block content %}
+<!-- KPI Comparison Cards -->
+<div class="grid-3">
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Mean Absolute Error (MAE)</div>
+            <div class="stat-value">₹ {{ "{:,.0f}".format(rf_metrics.mae) }}</div>
+            <div class="stat-subtext">Random Forest vs ₹ {{ "{:,.0f}".format(lr_metrics.mae) }} (Linear Reg)</div>
+        </div>
+        <span class="pill pill-emerald">RF Error is ₹ {{ "{:,.0f}".format(lr_metrics.mae - rf_metrics.mae) }} Lower</span>
+    </div>
+
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Root Mean Squared Error (RMSE)</div>
+            <div class="stat-value">₹ {{ "{:,.0f}".format(rf_metrics.rmse) }}</div>
+            <div class="stat-subtext">Random Forest vs ₹ {{ "{:,.0f}".format(lr_metrics.rmse) }} (Linear Reg)</div>
+        </div>
+        <span class="pill pill-emerald">RF Error is ₹ {{ "{:,.0f}".format(lr_metrics.rmse - rf_metrics.rmse) }} Lower</span>
+    </div>
+
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Coefficient of Determination (R²)</div>
+            <div class="stat-value">{{ rf_metrics.r2 }}</div>
+            <div class="stat-subtext">Random Forest vs {{ lr_metrics.r2 }} (Linear Reg)</div>
+        </div>
+        <span class="pill pill-emerald">RF Captures +3.75% More Variance</span>
+    </div>
+</div>
+
+<!-- Comparison Table & Bar Chart -->
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Side-by-Side Test Benchmark Summary</div>
+            <div class="card-subtitle">Performance on 716 unseen test samples (20% partition) with fixed random_state=42</div>
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Linear Regression</th>
+                        <th>Random Forest</th>
+                        <th>Selected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 600;">Mean Absolute Error (MAE)</td>
+                        <td>₹ {{ "{:,.2f}".format(lr_metrics.mae) }}</td>
+                        <td style="font-weight: 700; color: #059669;">₹ {{ "{:,.2f}".format(rf_metrics.mae) }}</td>
+                        <td><span class="pill pill-emerald">Winner</span></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Root Mean Squared Error (RMSE)</td>
+                        <td>₹ {{ "{:,.2f}".format(lr_metrics.rmse) }}</td>
+                        <td style="font-weight: 700; color: #059669;">₹ {{ "{:,.2f}".format(rf_metrics.rmse) }}</td>
+                        <td><span class="pill pill-emerald">Winner</span></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Coefficient of Determination (R²)</td>
+                        <td>{{ lr_metrics.r2 }} (54.05%)</td>
+                        <td style="font-weight: 700; color: #059669;">{{ rf_metrics.r2 }} (57.80%)</td>
+                        <td><span class="pill pill-emerald">Winner</span></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Architecture Type</td>
+                        <td>Ordinary Least Squares</td>
+                        <td>100 Tree Ensemble</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600;">Test Partition Size</td>
+                        <td>716 records</td>
+                        <td>716 records</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Test Error Comparison (MAE in ₹ Thousands)</div>
+            <div class="card-subtitle">Lower error signifies superior pricing accuracy across unseen vehicles</div>
+        </div>
+        <div id="maeBarChart" class="chart-container"></div>
+    </div>
+</div>
+
+<!-- Actual vs Predicted Scatter Plot -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <div class="card-title">Actual vs. Predicted Valuation Scatter (Held-Out Test Set: 716 Cars)</div>
+        <div class="card-subtitle">Diagnostic scatter plot of realized secondary market prices against model valuations. The dashed blue diagonal represents perfect agreement (Actual = Predicted).</div>
+    </div>
+    <div id="actualVsPredChart" class="chart-container" style="min-height: 420px;"></div>
+</div>
+
+<!-- Statistical Interpretation & Viva Explanation Card -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-title">Statistical Guide: Understanding Regression Evaluation Metrics</div>
+    <div style="font-size: 13px; color: #475569; line-height: 1.6; margin-top: 8px;">
+        <p><strong>1. Mean Absolute Error (MAE):</strong>
+        Measures the average rupee difference between predicted car valuations and actual selling prices. Random Forest achieves an average error of ₹ 1,59,985 (~ ₹ 1.60 Lakhs), outperforming Linear Regression (₹ 1,79,641) by nearly ₹ 20,000 per vehicle.</p>
+        
+        <p><strong>2. Root Mean Squared Error (RMSE):</strong>
+        Squares individual residuals prior to averaging, thereby penalizing large valuation misses more heavily than small ones. Random Forest reduces RMSE from ₹ 3.84 Lakhs down to ₹ 3.68 Lakhs.</p>
+
+        <p><strong>3. Critical Concept: Why R² is NOT "Prediction Accuracy":</strong>
+        In regression, $R^2$ (Coefficient of Determination) represents the proportion of variance in the dependent variable explained by the model compared to predicting the simple mean ($\bar{y}$):</p>
+        <div style="background: #f8fafc; border-left: 3px solid #6366f1; padding: 10px 14px; margin: 8px 0; font-family: monospace; font-size: 12.5px;">
+            R² = 1 - [ Σ(y_i - ŷ_i)² / Σ(y_i - ȳ)² ]
+        </div>
+        <p>Unlike classification tasks where accuracy represents the percentage of correct class labels (e.g. 95%), an $R^2$ of 0.578 <strong>does not mean the model is accurate 57.8% of the time</strong>. Instead, it indicates that <strong>57.8% of the total variability in secondary car prices is captured by our features</strong>. Pre-owned consumer markets involve substantial unobservable variation (such as paint condition, scratch history, urgency of sale, and personal negotiation). Capturing ~58% of variance on pre-owned assets demonstrates strong predictive power without artificial overfitting.</p>
+
+        <p><strong>4. Why Random Forest Won:</strong>
+        Car depreciation follows a steep, non-linear exponential curve over time. Tree-based ensemble algorithms partition the feature space into recursive segments, allowing them to naturally capture non-linear vehicle depreciation and luxury brand premiums without rigid linearity assumptions.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const lrMae = {{ lr_metrics.mae }};
+    const rfMae = {{ rf_metrics.mae }};
+    const scatterData = {{ scatter_points|safe }};
+
+    // 1. MAE Comparison Bar Chart
+    const barTrace = {
+        x: ['Linear Regression', 'Random Forest Regressor'],
+        y: [lrMae / 1000, rfMae / 1000],
+        type: 'bar',
+        marker: { color: ['#94a3b8', '#4f46e5'] },
+        text: [`₹ ${(lrMae/1000).toFixed(1)}k`, `₹ ${(rfMae/1000).toFixed(1)}k`],
+        textposition: 'auto',
+        hovertemplate: '%{x}<br>MAE: ₹ %{y:.1f}k<extra></extra>'
+    };
+    const barLayout = {
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff',
+        margin: { l: 40, r: 20, t: 10, b: 40 },
+        yaxis: { title: 'MAE in ₹ Thousands (Lower is Better)', showgrid: true, gridcolor: '#f1f5f9' },
+        height: 280
+    };
+    Plotly.newPlot('maeBarChart', [barTrace], barLayout, { responsive: true, displayModeBar: false });
+
+    // 2. Actual vs Predicted Scatter Chart
+    const actTrace = {
+        x: scatterData.map(d => d.actual),
+        y: scatterData.map(d => d.predicted),
+        text: scatterData.map(d => `${d.brand} (${d.year}) • ${d.km}`),
+        mode: 'markers',
+        type: 'scatter',
+        marker: { color: '#4f46e5', opacity: 0.65, size: 7 },
+        name: 'Test Samples (716 Cars)',
+        hovertemplate: '%{text}<br>Actual: ₹ %{x:.2f} L<br>Predicted: ₹ %{y:.2f} L<extra></extra>'
+    };
+
+    // Ideal y = x line
+    const idealTrace = {
+        x: [0, 35],
+        y: [0, 35],
+        mode: 'lines',
+        name: 'Ideal Prediction (Actual = Predicted)',
+        line: { color: '#0284c7', dash: 'dash', width: 2 }
+    };
+
+    const scatLayout = {
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff',
+        margin: { l: 40, r: 20, t: 10, b: 40 },
+        xaxis: { title: 'Actual Transaction Price (₹ Lakhs)', showgrid: true, gridcolor: '#f1f5f9' },
+        yaxis: { title: 'Model Predicted Resale Price (₹ Lakhs)', showgrid: true, gridcolor: '#f1f5f9' },
+        legend: { orientation: 'h', y: 1.08, x: 1, xanchor: 'right' },
+        height: 420
+    };
+    Plotly.newPlot('actualVsPredChart', [actTrace, idealTrace], scatLayout, { responsive: true, displayModeBar: false });
+</script>
+{% endblock %}

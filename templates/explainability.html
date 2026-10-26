@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Model Explainability & XAI | Carlytics{% endblock %}
+{% block headline %}Explainable Machine Learning (XAI) & Feature Diagnostics{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="grid-4">
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Primary Valuation Driver</div>
+            <div class="stat-value" style="font-size: 20px;">Brand & Trans.</div>
+            <div class="stat-subtext">~49% Combined Gini Impurity Share</div>
+        </div>
+        <span class="pill pill-indigo">Global Feature Rank</span>
+    </div>
+
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Explainability Method</div>
+            <div class="stat-value" style="font-size: 18px;">MDI + Ablation</div>
+            <div class="stat-subtext">Tree Gini Purity & Marginal Reference Shift</div>
+        </div>
+        <span class="pill pill-sky">Dual Interpretability</span>
+    </div>
+
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Model Architecture</div>
+            <div class="stat-value" style="font-size: 18px;">Random Forest</div>
+            <div class="stat-subtext">100 Ensembled Estimators • 43 Transformed Features</div>
+        </div>
+        <span class="pill pill-emerald">Fitted Pipeline</span>
+    </div>
+
+    <div class="stat-card">
+        <div>
+            <div class="stat-label">Goodness of Fit (Test R²)</div>
+            <div class="stat-value">0.5780</div>
+            <div class="stat-subtext">57.8% of Secondary Price Variance Captured</div>
+        </div>
+        <span class="pill pill-emerald">Verified Metric</span>
+    </div>
+</div>
+
+<!-- Section A: Global Feature Importance -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <div class="card-title">A. Global Feature Importance (Mean Decrease in Impurity)</div>
+            <div class="card-subtitle">
+                Extracted directly from the fitted Random Forest estimator (<code style="color: #4338ca;">car_price_pipeline.joblib</code>)
+            </div>
+        </div>
+
+        <!-- Toggle View: Base Feature Groups vs All Transformed Features -->
+        <div class="segmented-control">
+            <button type="button" id="toggleBaseBtn" class="segmented-btn active" onclick="switchImportanceView('base')">
+                Original Feature Groups (7)
+            </button>
+            <button type="button" id="toggleTransBtn" class="segmented-btn" onclick="switchImportanceView('transformed')">
+                Top Transformed Columns (12)
+            </button>
+        </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div id="featureImportanceChart" class="chart-container" style="height: 380px;"></div>
+
+    <!-- Qualitative Interpretations Grid -->
+    <div class="summary-grid" style="margin-top: 16px;">
+        <div class="summary-item">
+            <div class="summary-label">1. Brand Prestige & Segment</div>
+            <div class="summary-val" style="color: #4f46e5;">24.6% Importance</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                Manufacturer determines the vehicle's original ex-showroom tier, engineering reputation, and badge value.
+            </div>
+        </div>
+
+        <div class="summary-item">
+            <div class="summary-label">2. Transmission Gearbox</div>
+            <div class="summary-val" style="color: #0284c7;">24.4% Importance</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                Automatic gearboxes command significant market premiums in secondary urban transactions.
+            </div>
+        </div>
+
+        <div class="summary-item">
+            <div class="summary-label">3. Manufacturing Year</div>
+            <div class="summary-val" style="color: #059669;">22.5% Importance</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                Vehicle registration year acts as the primary depreciation clock across all automotive segments.
+            </div>
+        </div>
+
+        <div class="summary-item">
+            <div class="summary-label">4. Mileage & Powertrain</div>
+            <div class="summary-val" style="color: #d97706;">24.3% Combined</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                Kilometers driven (12.8%) and fuel type (11.5%) refine mechanical wear and operational economy.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section B: Local Prediction Feature Sensitivity (Individual Ablation) -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <div class="card-title">B. Local Feature Contribution for an Individual Vehicle</div>
+        <div class="card-subtitle">
+            Marginal impact of each attribute relative to the population reference vehicle (Median Indian Used Car)
+        </div>
+    </div>
+
+    <!-- Benchmark Reference Banner -->
+    <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">Standard Reference Baseline Car (Population Median / Mode)</div>
+            <div style="font-size: 13.5px; font-weight: 600; color: #0f172a; margin-top: 2px;">
+                Maruti • 2014 • 60,000 km • Diesel • Manual • Individual • First Owner
+            </div>
+        </div>
+        <div>
+            <span class="pill pill-sky" id="refValuationPill" style="font-size: 13px; font-weight: 700; padding: 6px 12px;">
+                Reference Value: ₹ 3.96 Lakhs
+            </span>
+        </div>
+    </div>
+
+    <!-- Quick Vehicle Presets for Local Explanation -->
+    <div class="preset-bar" style="margin-bottom: 16px;">
+        <span style="font-size: 11.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Select Test Vehicle:</span>
+        <button type="button" class="btn-preset" onclick="loadExplainVehicle('Toyota', 2018, 55000, 'Diesel', 'Automatic', 'Dealer', 'First Owner')">Toyota Fortuner '18 (Premium Auto)</button>
+        <button type="button" class="btn-preset" onclick="loadExplainVehicle('Maruti', 2019, 28000, 'Petrol', 'Manual', 'Individual', 'First Owner')">Maruti Swift '19 (Low Usage)</button>
+        <button type="button" class="btn-preset" onclick="loadExplainVehicle('Hyundai', 2011, 110000, 'Petrol', 'Manual', 'Individual', 'Second Owner')">Hyundai i10 '11 (Aging Economy)</button>
+        <button type="button" class="btn-preset" onclick="loadExplainVehicle('BMW', 2017, 48000, 'Diesel', 'Automatic', 'Dealer', 'First Owner')">BMW 3-Series '17 (Luxury German)</button>
+    </div>
+
+    <!-- Active Vehicle Comparison Deck -->
+    <div class="grid-2" style="align-items: start; margin-top: 16px;">
+        <!-- Left: Diverging Impact Waterfall Chart -->
+        <div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                Marginal Valuation Contribution by Feature (₹ Lakhs vs Benchmark)
+            </div>
+            <div id="localAblationChart" class="chart-container" style="height: 340px;"></div>
+        </div>
+
+        <!-- Right: Tabular Breakdown -->
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a;">Attribution Diagnostics Table</div>
+                <div style="font-size: 13px; font-weight: 700; color: #4f46e5;" id="explainTargetPrice">Evaluating...</div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="ablationTable">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Vehicle Value</th>
+                            <th>Reference</th>
+                            <th>Impact on Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ablationTableBody">
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #94a3b8; padding: 20px;">Calculating feature sensitivities...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section C: Model Interpretability Limitations & Statistical Integrity -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <div class="card-title">C. Interpretability Limitations & Machine Learning Integrity</div>
+        <div class="card-subtitle">
+            Essential academic principles distinguishing statistical association from real-world causality
+        </div>
+    </div>
+
+    <div class="grid-3" style="gap: 16px;">
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px;">
+            <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                <span>⚠️ Importance ≠ Causation</span>
+            </div>
+            <div style="font-size: 12.5px; color: #475569; margin-top: 8px; line-height: 1.5;">
+                A high feature importance score indicates that splitting on this feature produced substantial Gini impurity reduction across tree nodes. It does <strong>not</strong> prove an isolated physical cause-and-effect relationship in real marketplace transactions.
+            </div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px;">
+            <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                <span>📊 High-Cardinality MDI Bias</span>
+            </div>
+            <div style="font-size: 12.5px; color: #475569; margin-top: 8px; line-height: 1.5;">
+                Standard Mean Decrease in Impurity (MDI) can slightly favor continuous variables or categorical features with many unique levels (such as Brand with 29 unique categories). Aggregating one-hot columns groups related splits into honest, holistic feature totals.
+            </div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px;">
+            <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                <span>🎯 Explained Variance vs Accuracy</span>
+            </div>
+            <div style="font-size: 12.5px; color: #475569; margin-top: 8px; line-height: 1.5;">
+                The test metric <code style="color: #059669; font-weight: 600;">R² = 0.5780</code> measures the proportion of market price variance captured by the 7 features. It is <strong>not</strong> a percentage accuracy score, and cannot account for unrecorded vehicle condition or regional tax nuances.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Pass serialized feature importance data from Flask backend
+    const BASE_IMPORTANCES = {{ base_importances_json|safe }};
+    const TRANSFORMED_IMPORTANCES = {{ transformed_importances_json|safe }};
+    const REFERENCE_VEHICLE = {{ reference_vehicle|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/explainability.js') }}"></script>
+{% endblock %}

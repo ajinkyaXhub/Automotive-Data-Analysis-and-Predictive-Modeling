@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}What-If Price Simulator | Carlytics{% endblock %}
+{% block headline %}Interactive What-If Price Simulator{% endblock %}
+
+{% block content %}
+<!-- Simulator Controls & Action Bar -->
+<div class="simulator-header-box">
+    <div>
+        <div style="font-size: 16px; font-weight: 700; color: #0f172a;">Real-Time Resale Price Sensitivity Simulator</div>
+        <div style="font-size: 13px; color: #64748b; margin-top: 2px;">
+            Simulate how vehicle age, odometer mileage, and specifications impact valuation using the fitted Random Forest pipeline.
+        </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn-preset btn-reset" onclick="resetToBaseline()" title="Restore modified inputs to baseline configuration">
+            ↺ Reset to Baseline
+        </button>
+        <button type="button" class="btn-preset" onclick="setAsBaseline()" title="Lock current modified specs as the new baseline">
+            📌 Set Current as Baseline
+        </button>
+    </div>
+</div>
+
+<!-- Preset Scenarios Quick Bar -->
+<div class="preset-bar" style="margin-bottom: 20px;">
+    <span style="font-size: 11.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Quick Scenarios:</span>
+    <button type="button" class="btn-preset" onclick="applyPresetScenario('low_mileage')">📉 Low Mileage (-30k km)</button>
+    <button type="button" class="btn-preset" onclick="applyPresetScenario('high_mileage')">📈 High Mileage (+50k km)</button>
+    <button type="button" class="btn-preset" onclick="applyPresetScenario('newer_year')">✨ Newer Model (+3 Yrs)</button>
+    <button type="button" class="btn-preset" onclick="applyPresetScenario('older_year')">⏳ Older Model (-4 Yrs)</button>
+    <button type="button" class="btn-preset" onclick="applyPresetScenario('auto_upgrade')">⚙️ Upgrade to Automatic</button>
+    <button type="button" class="btn-preset" onclick="applyPresetScenario('diesel_swap')">⛽ Diesel Powertrain</button>
+</div>
+
+<!-- Side-by-Side Comparison Container -->
+<div class="sim-compare-grid">
+    <!-- Baseline Card -->
+    <div class="sim-price-card baseline" id="baselineCard">
+        <div class="sim-tag sim-tag-base">Baseline Vehicle Benchmark</div>
+        <div class="sim-price-num" id="basePriceFull">₹ 4,85,000</div>
+        <div class="sim-price-sub" id="basePriceLakh">Approx. ₹ 4.85 Lakhs</div>
+        <div class="hero-specs-summary" id="baseSpecsSummary" style="margin-top: 10px; font-size: 11.5px; padding: 4px 12px;">
+            Maruti • 2017 • 45,000 km • Petrol • Manual
+        </div>
+    </div>
+
+    <!-- Center Animated Delta Badge -->
+    <div class="sim-delta-wrap">
+        <div id="simDeltaBadge" class="sim-delta-badge unchanged">
+            <span id="deltaIcon">—</span>
+            <span id="deltaFull">₹ 0</span>
+        </div>
+        <div class="sim-delta-pct" id="deltaPct">0.0% variance</div>
+    </div>
+
+    <!-- Modified Simulated Card -->
+    <div class="sim-price-card modified" id="modifiedCard">
+        <div class="sim-tag sim-tag-mod">Simulated Configuration Valuation</div>
+        <div class="sim-price-num" id="modPriceFull">₹ 4,85,000</div>
+        <div class="sim-price-sub" id="modPriceLakh">Approx. ₹ 4.85 Lakhs</div>
+        <div class="hero-specs-summary" id="modSpecsSummary" style="margin-top: 10px; font-size: 11.5px; padding: 4px 12px; background: #312e81; color: #e0e7ff;">
+            Maruti • 2017 • 45,000 km • Petrol • Manual
+        </div>
+    </div>
+</div>
+
+<!-- Main Workspace: Left Controls vs Right Sensitivity Plot -->
+<div class="grid-2" style="align-items: start;">
+    <!-- Left Column: Interactive Input Deck -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Adjust Vehicle Attributes</div>
+            <div class="card-subtitle">Real-time model inference executed through Flask backend on input change</div>
+        </div>
+
+        <form id="simulatorForm" onsubmit="event.preventDefault();">
+            <!-- Continuous Slider 1: Manufacturing Year -->
+            <div class="slider-group">
+                <div class="slider-header">
+                    <label class="form-label" for="simYearSlider" style="margin-bottom: 0;">Manufacturing Year</label>
+                    <span id="simYearDisplay" class="slider-val-badge">2017</span>
+                </div>
+                <input type="range" id="simYearSlider" class="range-slider" min="1995" max="2024" value="2017" step="1" oninput="handleSliderChange('year', this.value)">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                    <span>1995 (Older)</span>
+                    <span>2015</span>
+                    <span>2024 (Modern)</span>
+                </div>
+            </div>
+
+            <!-- Continuous Slider 2: Kilometers Driven -->
+            <div class="slider-group">
+                <div class="slider-header">
+                    <label class="form-label" for="simKmSlider" style="margin-bottom: 0;">Odometer Mileage (km)</label>
+                    <span id="simKmDisplay" class="slider-val-badge">45,000 km</span>
+                </div>
+                <input type="range" id="simKmSlider" class="range-slider" min="2000" max="200000" value="45000" step="1000" oninput="handleSliderChange('km', this.value)">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                    <span>2,000 km (Pristine)</span>
+                    <span>100,000 km</span>
+                    <span>200,000 km (High Usage)</span>
+                </div>
+            </div>
+
+            <!-- Categorical Selectors Grid -->
+            <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; margin-top: 16px;">
+                <div class="form-section-title" style="margin-bottom: 12px;">Categorical Specifications</div>
+
+                <div class="grid-2" style="gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="simBrandSelect">Brand / Manufacturer</label>
+                        <select id="simBrandSelect" class="form-control" onchange="handleDropdownChange()">
+                            {% for b in brands %}
+                            <option value="{{ b }}" {% if b == 'Maruti' %}selected{% endif %}>{{ b }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="simFuelSelect">Fuel Mechanism</label>
+                        <select id="simFuelSelect" class="form-control" onchange="handleDropdownChange()">
+                            {% for f in fuels %}
+                            <option value="{{ f }}" {% if f == 'Petrol' %}selected{% endif %}>{{ f }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="simTransSelect">Transmission</label>
+                        <select id="simTransSelect" class="form-control" onchange="handleDropdownChange()">
+                            {% for t in transmissions %}
+                            <option value="{{ t }}" {% if t == 'Manual' %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="simSellerSelect">Seller Channel</label>
+                        <select id="simSellerSelect" class="form-control" onchange="handleDropdownChange()">
+                            {% for s in sellers %}
+                            <option value="{{ s }}" {% if s == 'Individual' %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label" for="simOwnerSelect">Previous Ownership</label>
+                        <select id="simOwnerSelect" class="form-control" onchange="handleDropdownChange()">
+                            {% for o in owners %}
+                            <option value="{{ o }}" {% if o == 'First Owner' %}selected{% endif %}>{{ o }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right Column: Sensitivity Chart & Explanations -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <div class="card-title">Model Price Sensitivity Curve</div>
+                <div class="card-subtitle">Real-time batch predictions evaluating marginal value elasticity</div>
+            </div>
+
+            <!-- Curve Dimension Selector -->
+            <div class="segmented-control">
+                <button type="button" id="curveKmBtn" class="segmented-btn active" onclick="switchCurveType('km')">
+                    Price vs. Mileage
+                </button>
+                <button type="button" id="curveYearBtn" class="segmented-btn" onclick="switchCurveType('year')">
+                    Price vs. Year
+                </button>
+            </div>
+        </div>
+
+        <!-- Sensitivity Plotly Chart Container -->
+        <div id="simSensitivityChart" class="chart-container" style="height: 380px;"></div>
+
+        <!-- ML Integrity and Observational Notice -->
+        <div class="alert alert-info" style="margin-top: 14px; font-size: 12px; line-height: 1.5;">
+            <strong>ML Integrity & Statistical Caveat:</strong>
+            All valuations shown on this curve are evaluated in real time through the fitted Random Forest estimator (<code style="color: #4338ca; font-weight: 600;">car_price_pipeline.joblib</code>) holding all other vehicle attributes constant.
+            This illustrates mathematical correlation learned from secondary market training data, not guaranteed real-world depreciation guarantees.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/simulator.js') }}"></script>
+{% endblock %}

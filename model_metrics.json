@@ -1,0 +1,98 @@
+{
+    "best_model_name": "Random Forest Regressor",
+    "selection_reason": "Random Forest achieved higher R2 (0.5780 vs 0.5405) and lower MAE (Rs. 159,986 vs Rs. 179,642).",
+    "metrics": {
+        "Linear Regression": {
+            "mae": 179641.77,
+            "rmse": 384722.7,
+            "r2": 0.5405
+        },
+        "Random Forest Regressor": {
+            "mae": 159985.64,
+            "rmse": 368712.62,
+            "r2": 0.578
+        }
+    },
+    "dataset_summary": {
+        "source_file": "car data.csv",
+        "raw_records": 4340,
+        "cleaned_records": 3577,
+        "train_records": 2861,
+        "test_records": 716,
+        "target_mean": 473912.54,
+        "target_median": 350000.0,
+        "target_min": 20000.0,
+        "target_max": 8900000.0
+    },
+    "features": [
+        "brand",
+        "year",
+        "km_driven",
+        "fuel",
+        "seller_type",
+        "transmission",
+        "owner"
+    ],
+    "categories": {
+        "brand": [
+            "Ambassador",
+            "Audi",
+            "BMW",
+            "Chevrolet",
+            "Daewoo",
+            "Datsun",
+            "Fiat",
+            "Force",
+            "Ford",
+            "Honda",
+            "Hyundai",
+            "Isuzu",
+            "Jaguar",
+            "Jeep",
+            "Kia",
+            "Land",
+            "MG",
+            "Mahindra",
+            "Maruti",
+            "Mercedes-Benz",
+            "Mitsubishi",
+            "Nissan",
+            "OpelCorsa",
+            "Renault",
+            "Skoda",
+            "Tata",
+            "Toyota",
+            "Volkswagen",
+            "Volvo"
+        ],
+        "fuel": [
+            "CNG",
+            "Diesel",
+            "Electric",
+            "LPG",
+            "Petrol"
+        ],
+        "seller_type": [
+            "Dealer",
+            "Individual",
+            "Trustmark Dealer"
+        ],
+        "transmission": [
+            "Automatic",
+            "Manual"
+        ],
+        "owner": [
+            "First Owner",
+            "Fourth & Above Owner",
+            "Second Owner",
+            "Test Drive Car",
+            "Third Owner"
+        ]
+    },
+    "ranges": {
+        "year_min": 1992,
+        "year_max": 2020,
+        "km_min": 1,
+        "km_max": 806599
+    }
+}
